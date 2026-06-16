@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行为实验</title>
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-likert@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@1.1.3"></script>
+    <style>
+        .center-text { text-align: center; font-size: 20px; }
+        .fixation { font-size: 60px; text-align: center; font-weight: bold; margin: 40px 0; }
+        textarea { width: 100%; height: 120px; }
+        .labor-text { font-size: 14px; background: #f5f5f5; padding: 10px; max-height: 150px; overflow: auto; word-break: break-all; }
+        .custom-slider-container { margin: 20px auto; width: 600px; text-align: center; }
+        .slider-value { font-size: 28px; font-weight: bold; color: #2c3e50; margin: 10px 0; }
+        input[type=range] { width: 100%; margin: 10px 0; }
+        .slider-labels { display: flex; justify-content: space-between; font-weight: bold; }
+    </style>
+</head>
+<body></body>
+<script>
+    /* ---------- 初始化 ---------- */
+    const jsPsych = initJsPsych({
+        on_finish: function() {
+            const csv = jsPsych.data.get().csv();
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'family_prosocial_data.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    });
+
+    let birthOrder = '';
+    let primeCondition = '';
+    let laborEarnings = 0;
+
+    /* ---------- 知情同意 ---------- */
+    const consent = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="center-text"><h2>研究参与同意书</h2><p>本研究旨在了解家庭背景与决策风格的关系。数据匿名处理，仅用于学术研究，您可随时退出。</p><p>按任意键继续</p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    /* ---------- 筛选出生顺序 ---------- */
+    const screenBirth = {
+        type: jsPsychSurveyMultiChoice,
+        questions: [{
+            prompt: "您在家中的出生顺序是？",
+            options: ["我是最大的孩子", "我有哥哥或姐姐", "我是独生子女"],
+            required: true, name: 'birth'
+        }],
+        on_finish: function(data) {
+            const a = data.response.birth;
+            birthOrder = a === "我是最大的孩子" ? 'eldest' : (a === "我有哥哥或姐姐" ? 'non-eldest' : 'only');
+            jsPsych.data.addProperties({ birth_order: birthOrder });
+        }
+    };
+
+    /* 独生子女退出 */
+    const onlyChildEnd = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="center-text"><h2>感谢您的参与</h2><p>本研究目前仅招募多子女家庭的被试。<br>您的参与同样宝贵，实验到此结束。</p><p>按任意键结束实验并下载数据。</p></div>`,
+        choices: "ALL_KEYS",
+        on_finish: () => jsPsych.endExperiment()
+    };
+    const onlyTimeline = { timeline: [onlyChildEnd], conditional_function: () => birthOrder === 'only' };
+
+    /* ========== 多子女实验 ========== */
+    const assignPrime = {
+        type: jsPsychHtmlKeyboardResponse, stimulus: '', choices: "NO_KEYS", trial_duration: 0,
+        on_load: () => {
+            primeCondition = Math.random() < 0.5 ? 'responsibility' : 'neutral';
+            jsPsych.data.addProperties({ prime_condition: primeCondition });
+        }
+    };
+
+    const primeInstruction = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: () => primeCondition === 'responsibility' ?
+            `<div class="center-text"><p><b>请用5分钟回忆并详细写下一件你为了照顾弟弟妹妹（或为家庭整体利益）而牺牲自己愿望的经历。回忆完成后按任意键开始书写。</b></p><p>描述当时的情境、你的具体行动以及你的感受。</p></div>` :
+            `<div class="center-text"><p><b>请用5分钟回忆详细描述你上周三从早上起床到中午吃饭所经历的所有日常琐事。回忆完成后按任意键开始书写。</b></p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    const primeWriting = {
+        type: jsPsychSurveyText,
+        questions: [{ prompt: '请在此书写：', rows: 12, columns: 80, name: 'writing' }],
+        trial_duration: 300000, data: { task: 'prime_writing' }
+    };
+
+    const iatIntro = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="center-text"><h3>词汇分类任务</h3><p>词语属于<b style="color:green;">亲社会/自我</b>请按 <b>E</b> 键；属于<b style="color:red;">自私/他人</b>请按 <b>I</b> 键。</p><p>请尽可能又快又准地反应。按任意键开始。</p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    const iatStimuli = [
+        { word: '帮助', correct: 'e' }, { word: '慷慨', correct: 'e' }, { word: '关怀', correct: 'e' }, { word: '分享', correct: 'e' },
+        { word: '自私', correct: 'i' }, { word: '冷漠', correct: 'i' }, { word: '贪婪', correct: 'i' }, { word: '吝啬', correct: 'i' }
+    ];
+    let iatList = jsPsych.randomization.shuffle(iatStimuli.concat(iatStimuli));
+    const iatTrials = iatList.map(item => ({
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="fixation">${item.word}</div>`,
+        choices: ['e', 'i'],
+        data: { task: 'IAT', word: item.word, correct_response: item.correct },
+        on_finish: function(data) { data.correct = data.response === item.correct ? 1 : 0; }
+    }));
+
+    const laborText = ("abxabfab abtabmab qabpab abwab nabab ablab abeab abhab abrab " +
+        "abkab abjab abuab abiab aboab abnab abgab abdab abvab abzab " +
+        "abtyab abmnab apab abyab abtab abrab abeab abwab abqab abfab " +
+        "ablab abhab abgab abdab abvab abzab").repeat(5);
+
+    const laborInstruction = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="center-text"><h3>附加任务：字母计数</h3><p>3分钟内计算下方文本中 <b>"ab"</b> 出现的总次数。每数对一处得 <b>0.2元</b>。</p><p>按任意键开始。</p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    const laborTask = {
+        type: jsPsychSurveyText,
+        questions: [{ prompt: `<div class="labor-text">${laborText}</div><p>请输入"ab"出现的总次数：</p>`, rows: 1, columns: 10, name: 'count' }],
+        trial_duration: 180000,
+        data: { task: 'labor_task' },
+        on_finish: function(data) {
+            const user = parseInt(data.response.count);
+            const actual = (laborText.match(/ab/g) || []).length;
+            if (!isNaN(user)) {
+                laborEarnings = (Math.abs(user - actual) <= 2 ? user : actual) * 0.2;
+            }
+            laborEarnings = Math.round(laborEarnings * 100) / 100;
+            jsPsych.data.addProperties({ labor_actual: actual, labor_user: user, labor_earnings: laborEarnings });
+        }
+    };
+
+    /* ---- 独裁者博弈 ---- */
+    const dictatorInstruction = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: () => `<div class="center-text"><p>您在字母计数任务中获得了 <b>${laborEarnings.toFixed(2)} 元</b> 额外报酬。</p><p>现在，您可以将其中任意金额分配给另一位未参与劳动的匿名被试。</p><p>按任意键开始分配。</p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    const dictatorGame = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: function() {
+            const max = laborEarnings;
+            return `<div class="custom-slider-container">
+                <p><b>您愿意分给对方多少元？剩余的将全部归您</b></p>
+                <div class="slider-value">当前选择：<span id="dict-val">0.00</span> 元</div>
+                <input type="range" id="dict-slider" min="0" max="${max}" step="0.1" value="0">
+                <div class="slider-labels"><span>0</span><span>${max.toFixed(2)}</span></div>
+                <p style="margin-top:15px;">调整滑块后请点击下方按钮</p>
+            </div>`;
+        },
+        choices: ['确认分配'],
+        on_load: function() {
+            // 将滑块当前值存入局部变量，供 on_finish 使用
+            this.selectedValue = 0;
+            const self = this;
+            const slider = document.getElementById('dict-slider');
+            const display = document.getElementById('dict-val');
+            if (slider && display) {
+                const update = () => {
+                    self.selectedValue = parseFloat(slider.value);
+                    display.textContent = self.selectedValue.toFixed(2);
+                };
+                slider.addEventListener('input', update);
+                update();
+            }
+        },
+        on_finish: function(data) {
+            data.amount_shared = this.selectedValue;
+            data.amount_kept = laborEarnings - this.selectedValue;
+            data.task = 'dictator_game';
+        }
+    };
+
+    /* ---- 第三方惩罚 ---- */
+    const thirdPartyInstruction = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="center-text"><h3>监督者决策</h3><p>系统额外给您 <b>3元</b> “监督金”。<br>往期分配：<b>玩家A</b>从10元中分给<b>玩家B</b>仅<b>1元</b>，自己保留<b>9元</b>。</p><p>您可从您的3元中拿出任意金额惩罚A（每付出1元，A被扣3元）。剩余监督金归您。</p><p>按任意键继续。</p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    const thirdPartyGame = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `<div class="custom-slider-container">
+            <p><b>A得9元，B得1元。您愿意花费多少钱惩罚A？</b></p>
+            <div class="slider-value">当前选择：<span id="pun-val">0.0</span> 元</div>
+            <input type="range" id="pun-slider" min="0" max="3" step="0.1" value="0">
+            <div class="slider-labels"><span>0元</span><span>3元</span></div>
+            <p style="margin-top:15px;">调整滑块后请点击下方按钮</p>
+        </div>`,
+        choices: ['确认惩罚'],
+        on_load: function() {
+            this.selectedValue = 0;
+            const self = this;
+            const slider = document.getElementById('pun-slider');
+            const display = document.getElementById('pun-val');
+            if (slider && display) {
+                const update = () => {
+                    self.selectedValue = parseFloat(slider.value);
+                    display.textContent = self.selectedValue.toFixed(1);
+                };
+                slider.addEventListener('input', update);
+                update();
+            }
+        },
+        on_finish: function(data) {
+            data.punishment_amount = this.selectedValue;
+            data.punishment_effect = this.selectedValue * 3;
+            data.task = 'third_party_punishment';
+        }
+    };
+
+    /* 问卷部分 */
+    const manipulationCheck = {
+        type: jsPsychSurveyLikert,
+        questions: [
+            { prompt: "此刻，我感到自己对家庭成员负有很强的责任。", labels: ["完全不同意","不同意","中立","同意","完全同意"], name: 'MC1' },
+            { prompt: "我认为自己有义务照顾兄弟姐妹。", labels: ["完全不同意","不同意","中立","同意","完全同意"], name: 'MC2' }
+        ], data: { task: 'manipulation_check' }
+    };
+    const attentionCheck = {
+        type: jsPsychSurveyLikert,
+        questions: [{ prompt: "本题请直接选择“完全同意”。", labels: ["完全不同意","不同意","中立","同意","完全同意"], name: 'attention' }],
+        data: { task: 'attention_check' }
+    };
+    const ptm = {
+        type: jsPsychSurveyLikert,
+        questions: [
+            { prompt: "当有人在场时，我更愿意帮助他人。", labels: ["完全不同意","不同意","有点不同意","中立","有点同意","同意","完全同意"], name: 'PTM1' },
+            { prompt: "即使没有人在场，我也会帮助需要帮助的人。", labels: ["完全不同意","不同意","有点不同意","中立","有点同意","同意","完全同意"], name: 'PTM2' },
+            { prompt: "我在帮助他人时会感到快乐。", labels: ["完全不同意","不同意","有点不同意","中立","有点同意","同意","完全同意"], name: 'PTM3' },
+            { prompt: "我会因为同情而帮助他人。", labels: ["完全不同意","不同意","有点不同意","中立","有点同意","同意","完全同意"], name: 'PTM4' }
+        ], data: { task: 'PTM' }
+    };
+    const demographics = {
+        type: jsPsychSurveyMultiChoice,
+        questions: [
+            { prompt: "您的性别：", options: ["男","女","其他"], name: 'sex' },
+            { prompt: "您的年龄（周岁）：", options: ["18-25","26-30","31-40","41-45","45以上"], name: 'age' },
+            { prompt: "包括您在内，兄弟姐妹总数：", options: ["2","3","4","5及以上"], name: 'sibsize' },
+            { prompt: "家庭月收入（元）：", options: ["3000以下","3001-6000","6001-10000","10001-20000","20000以上"], name: 'income' }
+        ], data: { task: 'demographics' }
+    };
+    const suspicionCheck = {
+        type: jsPsychSurveyText,
+        questions: [{ prompt: '您认为本实验的目的是什么？', rows: 3, name: 'suspicion' }],
+        data: { task: 'suspicion_check' }
+    };
+    const debrief = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `<div class="center-text"><h2>实验结束</h2><p>感谢参与！本研究实际用来探讨出生顺序与亲社会行为的关系。<br>您的分配决策可能影响最终报酬（随机抽取实现）。</p><p>按任意键提交数据并结束。</p></div>`,
+        choices: "ALL_KEYS"
+    };
+
+    const multiTimeline = {
+        timeline: [
+            assignPrime, primeInstruction, primeWriting,
+            iatIntro, ...iatTrials,
+            laborInstruction, laborTask,
+            dictatorInstruction, dictatorGame,
+            thirdPartyInstruction, thirdPartyGame,
+            manipulationCheck, attentionCheck, ptm, demographics, suspicionCheck, debrief
+        ],
+        conditional_function: () => birthOrder !== 'only'
+    };
+
+    jsPsych.run([consent, screenBirth, onlyTimeline, multiTimeline]);
+</script>
+</html>
