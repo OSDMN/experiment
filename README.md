@@ -1,24 +1,66 @@
-家庭亲社会行为实验
-一个基于 jsPsych 7 的在线行为实验，探讨出生顺序与亲社会行为的关系。  
-包含启动写作任务、内隐联想测验(IAT)、字母计数劳动任务、独裁者博弈、第三方惩罚和问卷。
 
-在线运行
-直接打开 `实验.html` 即可在浏览器中运行。  
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭亲社会行为实验</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f4f8;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5em;
+        }
+        p {
+            color: #555;
+            font-size: 18px;
+            margin-bottom: 2em;
+        }
+        .key-hint {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-size: 22px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>家庭亲社会行为实验</h1>
+        <p>感谢您的参与！<br>请认真阅读指导语并完成全部任务。</p>
+        <div class="key-hint">按任意键开始</div>
+        <p style="margin-top: 20px; font-size: 14px; color: #888;">（或点击页面任意位置）</p>
+    </div>
 
-
-主要特性
-- 根据出生顺序自动分组（长子女 / 非长子女）
-- 责任/中性随机启动，且启动回忆内容与出生顺序匹配
-- 数据导出为 CSV 文件
-
-## 依赖
-- jsPsych 7.3.4 及插件
-
-## 使用说明
-1. 下载仓库文件
-2. 用浏览器打开 `实验.html`
-3. 完成实验后数据会自动下载
-
-## 注意事项
-- 实验设计假设被试为多子女家庭
-- 独生子女会在筛选阶段退出
+    <script>
+        function startExperiment() {
+            window.location.href = 'experiment.html';
+        }
+        document.addEventListener('keydown', startExperiment, { once: true });
+        document.addEventListener('click', startExperiment, { once: true });
+    </script>
+</body>
+</html>
