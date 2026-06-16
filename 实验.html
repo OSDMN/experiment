@@ -4,16 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>行为实验</title>
-    <!-- 核心库 -->
-<script src="https://cdn.bootcdn.net/ajax/libs/jsPsych/7.3.4/jspsych.js"></script>
-<link href="https://cdn.bootcdn.net/ajax/libs/jsPsych/7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
-
-<!-- 插件 -->
-<script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
-<script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
-<script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
-<script src="https://unpkg.com/@jspsych/plugin-survey-likert@1.1.3"></script>
-<script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@1.1.3"></script>
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-likert@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@1.1.3"></script>
     <style>
         .center-text { text-align: center; font-size: 20px; }
         .fixation { font-size: 60px; text-align: center; font-weight: bold; margin: 40px 0; }
@@ -58,12 +55,12 @@
         type: jsPsychSurveyMultiChoice,
         questions: [{
             prompt: "您在家中的出生顺序是？",
-            options: ["我是最大的孩子", "我有哥哥或姐姐", "我是独生子女"],
+            options: ["我是家里最大的孩子", "我有哥哥或姐姐", "我是独生子女"],
             required: true, name: 'birth'
         }],
         on_finish: function(data) {
             const a = data.response.birth;
-            birthOrder = a === "我是最大的孩子" ? 'eldest' : (a === "我有哥哥或姐姐" ? 'non-eldest' : 'only');
+            birthOrder = a === "我是家里最大的孩子" ? 'eldest' : (a === "我有哥哥或姐姐" ? 'non-eldest' : 'only');
             jsPsych.data.addProperties({ birth_order: birthOrder });
         }
     };
