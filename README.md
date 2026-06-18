@@ -2,7 +2,8 @@
 包含启动写作任务、内隐联想测验(IAT)、字母计数劳动任务、独裁者博弈、第三方惩罚和问卷。
 
 ## 在线运行
-打开(https://osdmn.github.io/experiment/%e5%ae%9e%e9%aa%8c.html) 即可在浏览器中运行。  
+打开(https://osdmn.github.io/experiment/%e5%ae%9e%e9%aa%8c.html) 即可在浏览器中运行。
+学号：2023202243 姓名：杜嘉振
 
 ## 主要特性
 - 根据出生顺序自动分组
